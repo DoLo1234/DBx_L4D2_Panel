@@ -31,13 +31,28 @@ pnpm-debug.log*
 *.sln
 *.sw?
 
+# Large game files (uncomment if you want to exclude them from git)
+app/maps/*.vpk
+app/maps/*.zip
+app/maps/*.rar
+app/maps/*.7z
+
+# Binary plugin files (optional - uncomment if too large)
+# app/Available_Plugins/**/*.smx
+# app/Available_Plugins/**/*.so
+
+# Editor directories and files
+.vscode/*
+!.vscode/settings.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
 # OS generated files
 Thumbs.db
 ehthumbs.db
 Desktop.ini
-
-# Optional: Large map files (uncomment if maps are too large)
-# app/maps/*.vpk
-# app/maps/*.zip
-# app/maps/*.rar
-# app/maps/*.7z
