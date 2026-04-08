@@ -1,0 +1,32 @@
+services:
+  l4d2-panel:
+    build: .
+    # 网络模式：主机模式，允许容器直接访问主机网络
+    network_mode: "host"
+    # 环境变量配置
+    environment:
+      - NODE_ENV=production
+      - VITE_PORT=11214
+      - STEAMCMD_DOWNLOAD_URL_WINDOWS=https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip
+      - STEAMCMD_DOWNLOAD_URL_LINUX=https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz
+      - PANEL_USER=admin
+      - PANEL_PASSWORD=admin
+      - JWT_SECRET=your_jwt_secret_key_change_this_in_production
+      - SERVER_PATH=/home/steam/l4d2server
+      - STEAMCMD_PATH=/home/steam/steamcmd
+    # 挂载目录
+    volumes:
+      # 挂载L4D2服务器目录
+      - "/vol1/1000/l4d2server:/home/steam/l4d2server"
+      # 挂载SteamCMD目录
+      - "/vol1/1000/myL4D2Panel/steamcmd:/home/steam/steamcmd"
+      # 挂载应用配置目录
+      - "./app:/app/app"
+    # 重启策略：除非手动停止，否则持续运行
+    restart: unless-stopped
+
+volumes:
+  l4d2server:
+    driver: local
+  steamcmd:
+    driver: local

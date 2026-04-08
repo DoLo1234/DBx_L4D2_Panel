@@ -1,0 +1,43 @@
+# Dependencies
+node_modules
+frontend/node_modules
+
+# Build outputs
+dist
+frontend/dist
+dist-ssr
+
+# Logs
+*.log
+app/logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/settings.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Optional: Large map files (uncomment if maps are too large)
+# app/maps/*.vpk
+# app/maps/*.zip
+# app/maps/*.rar
+# app/maps/*.7z
