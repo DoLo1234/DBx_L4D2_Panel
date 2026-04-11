@@ -5,8 +5,8 @@ frontend/node_modules
 # Build outputs
 frontend/dist
 
-# 过滤整个app文件夹
-app
+# Application data (entire app folder)
+app/
 
 # Logs
 *.log
@@ -21,24 +21,8 @@ pnpm-debug.log*
 .env.*.local
 
 # Editor directories and files
-.vscode/*
-!.vscode/settings.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Binary plugin files (optional - uncomment if too large)
-# app/Available_Plugins/**/*.smx
-# app/Available_Plugins/**/*.so
-
-# Editor directories and files
-.vscode/*
-!.vscode/settings.json
-.idea
+.vscode/
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
