@@ -9,6 +9,7 @@
 ## ✨ 功能特性
 
 ### 🎯 核心功能
+
 - **服务器实例管理**：创建、启动、停止、重启多个 L4D2 服务器实例
 - **插件管理**：提供预分类的插件库(必选/可选/修复类),支持一键安装和管理
 - **地图管理**：上传、分配和管理游戏地图
@@ -17,16 +18,18 @@
 - **用户认证**：安全的登录认证机制
 
 ### 🛠️ 技术特性
+
 - **现代化前端**：Vue 3 + Vite + Element Plus + Pinia
 - **高性能后端**：Node.js + Express
 - **进程管理**：使用 node-pty 管理游戏服务器进程
-- **WebSocket 通信**：实时更新服务器状态和日志
+- **WebSocket 通信**：下载实时更新服务器状态和日志
 - **Docker 部署**：支持容器化一键部署
 - **响应式设计**：适配不同屏幕尺寸
 
 ## 🚀 快速开始
 
 ### 环境要求
+
 - Node.js 24+ (由 Dockerfile 指定)
 - Docker & Docker Compose (推荐)
 - 或本地开发环境:
@@ -37,35 +40,42 @@
 ### Docker 部署(推荐)
 
 #### 1. 克隆项目
+
 ```bash
 git clone https://github.com/your-username/l4d2-manager.git
 cd l4d2-manager
 ```
 
 #### 2. 配置环境变量
+
 复制并编辑 `.env` 文件:
+
 ```bash
 cp frontend/.env.example frontend/.env
 # 编辑 .env 文件,修改相关配置
 ```
 
 #### 3. 构建并启动
+
 ```bash
 docker-compose up -d
 ```
 
 #### 4. 访问面板
+
 打开浏览器访问：`http://localhost:11214`
 
 默认登录凭据:
+
 - 用户名: `admin`
-- 密码: `admin`
+- 密码: `自己环境变量里的密码或者yml文件里的密码`
 
 **⚠️ 重要**: 首次登录后请立即修改默认密码!
 
 ### 本地开发
 
 #### 1. 安装依赖
+
 ```bash
 cd frontend
 npm install
@@ -73,17 +83,54 @@ npm rebuild node-pty
 ```
 
 #### 2. 配置环境变量
+
 ```bash
 cp .env.example .env
 # 编辑 .env 文件
 ```
 
-#### 3. 启动后端服务
+#### 3. 启动服务
+
+**Windows 用户（推荐）：**
+启动时最好是权限高的用户-因为地图分配要使用到软连接
+直接管理员运行 `start.bat` 文件，或命令行执行：
+
+```bash
+start.bat
+```
+
+**Linux 用户（推荐）：**
+启动时最好是权限高的用户-因为地图分配要使用到软连接
+建议使用 Docker Compose 进行一键部署，更简单易用。
+使用 PM2 进行进程管理和守护：
+
+```bash
+# 全局安装 PM2（如果未安装）
+npm install -g pm2
+
+# 启动服务-这个操作要在对应目录下执行
+pm2 start ./frontend/backend/index.js --name l4d2
+
+# 查看运行状态
+pm2 status
+
+# 停止服务
+pm2 stop l4d2
+
+# 重启服务
+pm2 restart l4d2
+```
+
+**💡 提示：** 建议使用 PM2 全局安装来实现进程守护，确保服务在系统重启或崩溃后自动恢复。
+
+**手动启动（不推荐）：**
+
 ```bash
 node backend/index.js
 ```
 
-#### 4. 启动前端开发服务器
+#### 4. 启动前端开发服务器（仅开发模式）
+
 ```bash
 npm run dev
 ```
@@ -102,6 +149,7 @@ l4d2-manager/
 │   ├── assignMapData/          # 地图分配配置
 │   ├── instances/              # 服务器实例配置
 │   └── logs/                   # 应用日志
+|   └── maps/                   # 地图文件
 ├── frontend/                   # 前端应用及后端 API
 │   ├── src/                    # Vue 前端源码
 │   │   ├── components/         # 可复用组件
@@ -124,23 +172,27 @@ l4d2-manager/
 ## 🎮 使用指南
 
 ### 服务器管理
+
 1. **创建实例**：在实例管理页面点击「新增实例」,配置端口、人数等参数
 2. **启动服务器**：在实例列表中点击「启动」按钮
 3. **监控状态**：实时查看服务器运行状态和资源占用
 4. **查看日志**：点击「日志」按钮查看实时运行日志
 
 ### 插件管理
+
 1. **浏览插件**：在插件管理页面查看所有可用插件
 2. **安装插件**：选择需要的插件,点击「安装」按钮
 3. **配置插件**：部分插件支持自定义配置
 4. **卸载插件**：在已安装列表中选择插件进行卸载
 
 ### 地图管理
+
 1. **上传地图**：支持 .vpk、.zip、.rar 等格式
-2. **分配地图**：配置地图轮换顺序和模式
+2. **分配地图**：可对服务器实例分配地图
 3. **管理地图池**：添加或删除地图
 
 ### 文件管理
+
 1. **浏览文件**：可视化浏览服务器文件系统
 2. **编辑配置**：在线编辑 CFG 配置文件
 3. **上传下载**：支持大文件分块上传
@@ -148,7 +200,8 @@ l4d2-manager/
 ## 🔧 配置说明
 
 ### 环境变量
-在 `frontend/.env` 中配置:
+
+在 `frontend/.env` 中配置: 先将.env.example改为.env
 
 ```env
 # 面板端口
@@ -169,13 +222,15 @@ STEAMCMD_PATH=/path/to/steamcmd
 ```
 
 ### Docker 卷挂载
+
 建议挂载以下目录以持久化数据:
-- `./app:/app` - 保存所有配置和数据
-- `./logs:/app/logs` - 日志文件(可选)
+
+- `./app:/app/app` - 保存所有配置和数据
 
 ## ⚙️ 技术栈
 
 ### 前端
+
 - **框架**: Vue 3 (Composition API)
 - **构建工具**: Vite
 - **UI 组件库**: Element Plus
@@ -184,6 +239,7 @@ STEAMCMD_PATH=/path/to/steamcmd
 - **HTTP 客户端**: Axios
 
 ### 后端
+
 - **运行时**: Node.js 24
 - **Web 框架**: Express
 - **进程管理**: node-pty
@@ -191,6 +247,7 @@ STEAMCMD_PATH=/path/to/steamcmd
 - **实时通信**: WebSocket (ws)
 
 ### 部署
+
 - **容器化**: Docker
 - **编排**: Docker Compose
 - **进程守护**: PM2
@@ -198,16 +255,19 @@ STEAMCMD_PATH=/path/to/steamcmd
 ## 🐛 常见问题
 
 ### 1. 服务器无法启动
+
 - 检查端口是否被占用
 - 确认 L4D2 服务器文件完整
 - 查看日志文件排查错误
 
 ### 2. 插件安装失败
+
 - 确认插件版本与游戏版本兼容
 - 检查插件依赖是否已安装
 - 查看插件日志了解详细错误
 
 ### 3. Docker 部署问题
+
 - 确保 Docker 和 Docker Compose 已正确安装
 - 检查端口映射是否正确
 - 确认卷挂载路径权限
@@ -239,8 +299,9 @@ MIT License
 ## 📞 联系方式
 
 如有问题或建议,请通过以下方式联系:
+
 - 提交 GitHub Issue
-- 发送邮件至: [your-email@example.com]
+- 发送邮件至: [2339067466@qq.com]
 
 ---
 
