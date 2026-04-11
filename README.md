@@ -28,6 +28,27 @@
 - **Docker 部署**：支持容器化一键部署
 - **响应式设计**：适配不同屏幕尺寸
 
+## 📸 界面预览
+
+<div align="center">
+
+### 主页仪表盘
+![主页](frontend/images/主页.png)
+
+### 服务器管理
+![服务器管理](frontend/images/服务器管理.png)
+
+### 插件管理
+![插件管理](frontend/images/插件.png)
+
+### 具体插件分配
+![具体插件分配](frontend/images/具体插件分配.png)
+
+### 地图管理
+![地图管理](frontend/images/地图.png)
+
+</div>
+
 ## 🚀 快速开始
 
 ### 环境要求
