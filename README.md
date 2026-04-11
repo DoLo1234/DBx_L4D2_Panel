@@ -46,22 +46,13 @@ git clone https://github.com/your-username/l4d2-manager.git
 cd l4d2-manager
 ```
 
-#### 2. 配置环境变量
-
-复制并编辑 `.env` 文件:
-
-```bash
-cp frontend/.env.example frontend/.env
-# 编辑 .env 文件,修改相关配置
-```
-
-#### 3. 构建并启动
+#### 2. 构建并启动
 
 ```bash
 docker-compose up -d
 ```
 
-#### 4. 访问面板
+#### 3. 访问面板
 
 打开浏览器访问：`http://localhost:11214`
 
@@ -82,9 +73,24 @@ npm rebuild node-pty
 
 #### 2. 配置环境变量
 
-```bash
-cp .env.example .env
-# 编辑 .env 文件
+在 `frontend/.env` 中配置: 先将.env.example改为.env
+
+```env
+# 面板端口
+VITE_PORT=11214
+
+# 登录凭据(请修改默认值)
+PANEL_USER=admin
+PANEL_PASSWORD=your_secure_password
+
+# JWT 密钥(请修改为随机字符串)
+JWT_SECRET=your_jwt_secret_key_change_this
+
+# L4D2 服务器路径
+SERVER_PATH=/path/to/l4d2server
+
+# SteamCMD 路径
+STEAMCMD_PATH=/path/to/steamcmd
 ```
 
 #### 3. 启动服务
@@ -196,28 +202,6 @@ l4d2-manager/
 3. **上传下载**：支持大文件分块上传
 
 ## 🔧 配置说明
-
-### 环境变量
-
-在 `frontend/.env` 中配置: 先将.env.example改为.env
-
-```env
-# 面板端口
-VITE_PORT=11214
-
-# 登录凭据(请修改默认值)
-PANEL_USER=admin
-PANEL_PASSWORD=your_secure_password
-
-# JWT 密钥(请修改为随机字符串)
-JWT_SECRET=your_jwt_secret_key_change_this
-
-# L4D2 服务器路径
-SERVER_PATH=/path/to/l4d2server
-
-# SteamCMD 路径
-STEAMCMD_PATH=/path/to/steamcmd
-```
 
 ### Docker 卷挂载
 
