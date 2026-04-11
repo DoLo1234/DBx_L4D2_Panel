@@ -265,12 +265,8 @@ const submitForm = async () => {
       );
     }
 
-    if (isNameExists) {
-      ElMessage.error("该实例名已被使用，请选择其他名称");
-      return;
-    }
-    if (isPortExists) {
-      ElMessage.error("该端口已被使用，请选择其他端口");
+    if (isNameExists && isPortExists) {
+      ElMessage.error("该实例名已被使用，请选择其他名称和端口");
       return;
     }
 

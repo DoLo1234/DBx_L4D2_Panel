@@ -96,36 +96,44 @@ STEAMCMD_PATH=/path/to/steamcmd
 #### 3. 启动服务
 
 **Windows 用户（推荐）：**
-启动时最好是权限高的用户-因为地图分配要使用到软连接
-直接管理员运行 `start.bat` 文件，或命令行执行：
+
+- 启动时最好是权限高的用户-因为地图分配要使用到软连接
+- 直接以管理员身份运行 `start.bat` 文件，或命令行执行：
 
 ```bash
 start.bat
 ```
 
+脚本会自动请求管理员权限，然后在新窗口中启动后端服务。
+
 **Linux 用户（推荐）：**
-启动时最好是权限高的用户-因为地图分配要使用到软连接
-建议使用 Docker Compose 进行一键部署，更简单易用。
-使用 PM2 进行进程管理和守护：
+
+- 启动时最好是权限高的用户-因为地图分配要使用到软连接
+- 使用交互式菜单脚本 `start.sh` 进行管理：
 
 ```bash
-# 全局安装 PM2（如果未安装）
-npm install -g pm2
+# 首次设置执行权限
+chmod +x start.sh
 
-# 启动服务-这个操作要在对应目录下执行
-pm2 start ./frontend/backend/index.js --name l4d2
-
-# 查看运行状态
-pm2 status
-
-# 停止服务
-pm2 stop l4d2
-
-# 重启服务
-pm2 restart l4d2
+# 运行管理菜单
+./start.sh
 ```
 
-**💡 提示：** 建议使用 PM2 全局安装来实现进程守护，确保服务在系统重启或崩溃后自动恢复。
+交互式菜单提供以下功能：
+
+- **1. Start Backend** - 启动后端服务
+- **2. Stop Backend** - 停止后端服务
+- **3. View Status** - 查看运行状态
+- **4. View Logs** - 查看后端日志
+- **5. Attach to Session** - 连接到后端会话（如可用）
+- **0. Exit** - 退出菜单
+
+**💡 提示：**
+
+- 脚本会自动请求 root 权限
+- 优先使用 screen 或 tmux 保持后端在后台运行
+- 如果没有 screen/tmux，会降级使用 nohup
+- 所有管理功能都集成在一个菜单中，无需单独的停止脚本
 
 **手动启动（不推荐）：**
 
@@ -232,7 +240,7 @@ l4d2-manager/
 
 - **容器化**: Docker
 - **编排**: Docker Compose
-- **进程守护**: PM2
+- **进程管理**: 内置脚本（screen/tmux/nohup）
 
 ## 🐛 常见问题
 

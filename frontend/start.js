@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-import { execSync } from 'child_process';
-import * as fs from 'fs';
-import { platform } from 'os';
-import path from 'path';
+import { execSync } from "child_process";
+import * as fs from "fs";
+import { platform } from "os";
+import path from "path";
 
 // 清除屏幕
 function clearScreen() {
@@ -93,7 +93,7 @@ const colors = {
   yellow: "\x1b[33m",
   red: "\x1b[31m",
   cyan: "\x1b[36m",
-  purple: "\x1b[35m"
+  purple: "\x1b[35m",
 };
 
 // 主函数
@@ -101,9 +101,15 @@ function main() {
   clearScreen();
 
   // 显示横幅
-  console.log(`${colors.blue}╔════════════════════════════════════════════════════════════════════════╗${colors.reset}`);
-  console.log(`${colors.cyan}║                    🎮 L4D2 Manager Server                              ║${colors.reset}`);
-  console.log(`${colors.blue}╚════════════════════════════════════════════════════════════════════════╝${colors.reset}`);
+  console.log(
+    `${colors.blue}╔════════════════════════════════════════════════════════════════════════╗${colors.reset}`,
+  );
+  console.log(
+    `${colors.cyan}║                    🎮 L4D2 Manager Server                              ║${colors.reset}`,
+  );
+  console.log(
+    `${colors.blue}╚════════════════════════════════════════════════════════════════════════╝${colors.reset}`,
+  );
   console.log();
 
   // 检查 PM2 安装
@@ -111,7 +117,7 @@ function main() {
   if (!checkPM2()) {
     console.log(`${colors.red}❌ PM2 is not installed.${colors.reset}`);
     console.log(`${colors.yellow}📦 Installing PM2...${colors.reset}`);
-    
+
     if (!installPM2()) {
       console.log(`${colors.cyan}Press any key to exit...${colors.reset}`);
       process.stdin.resume();
@@ -125,22 +131,30 @@ function main() {
   console.log();
 
   // 检查后端服务状态
-  console.log(`${colors.yellow}🔍 Checking backend service status...${colors.reset}`);
+  console.log(
+    `${colors.yellow}🔍 Checking backend service status...${colors.reset}`,
+  );
   const isRunning = checkBackendStatus();
-  
+
   if (isRunning) {
-    console.log(`${colors.cyan}ℹ️  Backend service is already running.${colors.reset}`);
+    console.log(
+      `${colors.cyan}ℹ️  Backend service is already running.${colors.reset}`,
+    );
   } else {
     console.log(`${colors.cyan}ℹ️  Starting backend service...${colors.reset}`);
-    console.log(`${colors.cyan}🚀 Initializing L4D2 Manager Backend...${colors.reset}`);
-    
+    console.log(
+      `${colors.cyan}🚀 Initializing L4D2 Manager Backend...${colors.reset}`,
+    );
+
     if (!startBackend()) {
       console.log(`${colors.cyan}Press any key to exit...${colors.reset}`);
       process.stdin.resume();
       process.stdin.on("data", process.exit.bind(process, 1));
       return;
     }
-    console.log(`${colors.green}✅ Backend server started successfully!${colors.reset}`);
+    console.log(
+      `${colors.green}✅ Backend server started successfully!${colors.reset}`,
+    );
   }
   console.log();
 
@@ -152,22 +166,30 @@ function main() {
   // 显示最终消息
   console.log(`${colors.green}✅ Service started successfully!${colors.reset}`);
   console.log(`${colors.blue}🚀 L4D2 Manager is now running!${colors.reset}`);
-  
+
   const port = getPort();
-  console.log(`${colors.purple}🌐 Access URL: http://localhost:${port}${colors.reset}`);
-  console.log(`${colors.cyan}📝 Server is managed by PM2 (auto-restart enabled)${colors.reset}`);
+  console.log(
+    `${colors.purple}🌐 Access URL: http://localhost:${port}${colors.reset}`,
+  );
+  console.log(
+    `${colors.cyan}📝 Server is managed by PM2 (auto-restart enabled)${colors.reset}`,
+  );
   console.log();
-  
+
   console.log(`${colors.yellow}💡 Tips:${colors.reset}`);
   console.log(`${colors.cyan}  • To stop: node stop.js${colors.reset}`);
   console.log(`${colors.cyan}  • To check status: pm2 list${colors.reset}`);
-  console.log(`${colors.cyan}  • To view logs: pm2 logs l4d2-backend${colors.reset}`);
+  console.log(
+    `${colors.cyan}  • To view logs: pm2 logs l4d2-backend${colors.reset}`,
+  );
   console.log();
-  
-  console.log(`${colors.green}🎉 All systems ready! Enjoy managing your L4D2 server!${colors.reset}`);
+
+  console.log(
+    `${colors.green}🎉 All systems ready! Enjoy managing your L4D2 server!${colors.reset}`,
+  );
   console.log();
   console.log(`${colors.cyan}Press any key to exit...${colors.reset}`);
-  
+
   process.stdin.resume();
   process.stdin.on("data", process.exit.bind(process, 0));
 }
