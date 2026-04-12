@@ -16,6 +16,8 @@ class PluginManager {
     this.sourcemodInstallersPath = config.sourcemodInstallersPath;
     this.sourcemodPath = config.sourcemodPath;
     this.metamodPath = config.metamodPath;
+    // 确保可用插件目录存在
+    tools.ensureDirectoryExists(this.availablePluginsPath);
   }
 
   // 获取可用插件列表

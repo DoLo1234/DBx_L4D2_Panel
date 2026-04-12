@@ -4,23 +4,26 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# Find node path before potentially losing it
+if command -v node &> /dev/null; then
+    NODE_PATH="$(command -v node)"
+else
+    echo "ERROR: node is not found in PATH!"
+    exit 1
+fi
+
 # Check for root privileges
 if [ "$EUID" -ne 0 ]; then
     echo "Requesting root privileges..."
     echo "Please enter your password when prompted."
-    sudo "$0" "$@"
+    # Preserve PATH and other important env vars
+    sudo PATH="$PATH" NODE_PATH="$NODE_PATH" "$0" "$@"
     exit $?
 fi
 
 # Function to check if backend is running
 check_backend_running() {
-    if screen -list | grep -q "l4d2-backend"; then
-        return 0
-    fi
-    if tmux has-session -t l4d2-backend 2>/dev/null; then
-        return 0
-    fi
-    if ps aux | grep -q "node backend/index.js" | grep -v grep; then
+    if ps aux | grep -v grep | grep -q "node backend/index.js"; then
         return 0
     fi
     return 1
@@ -45,28 +48,21 @@ start_backend() {
     echo "Please wait, initializing server..."
     echo ""
     
-    # Start backend in background and keep it running
-    if command -v screen &> /dev/null; then
-        # Use screen if available
-        screen -dmS l4d2-backend bash -c "cd \"$SCRIPT_DIR\" && node backend/index.js"
-        echo "[SUCCESS] Backend server started in screen session!"
-        echo ""
-        echo "To view the backend: screen -r l4d2-backend"
-        echo "To detach from screen: Press Ctrl+A then D"
-    elif command -v tmux &> /dev/null; then
-        # Use tmux if available
-        tmux new-session -d -s l4d2-backend "cd \"$SCRIPT_DIR\" && node backend/index.js"
-        echo "[SUCCESS] Backend server started in tmux session!"
-        echo ""
-        echo "To view the backend: tmux attach -t l4d2-backend"
-        echo "To detach from tmux: Press Ctrl+B then D"
-    else
-        # Fallback to nohup
-        nohup node backend/index.js > backend.log 2>&1 &
-        BACKEND_PID=$!
+    # Start backend with nohup (using full node path)
+    nohup "$NODE_PATH" backend/index.js > backend.log 2>&1 &
+    BACKEND_PID=$!
+    
+    # Give it a moment to start
+    sleep 2
+    
+    if ps -p $BACKEND_PID > /dev/null; then
         echo "[SUCCESS] Backend server started with PID: $BACKEND_PID"
         echo ""
         echo "Logs are in: backend.log"
+        echo "To view logs: tail -f backend.log"
+    else
+        echo "[ERROR] Failed to start backend server!"
+        echo "Check backend.log for details"
     fi
     echo ""
     read -p "Press Enter to return to menu..."
@@ -90,19 +86,7 @@ stop_backend() {
     echo "Stopping backend server..."
     echo ""
     
-    # Check and stop screen session
-    if screen -list | grep -q "l4d2-backend"; then
-        screen -S l4d2-backend -X quit
-        echo "[SUCCESS] Stopped screen session: l4d2-backend"
-    fi
-    
-    # Check and stop tmux session
-    if tmux has-session -t l4d2-backend 2>/dev/null; then
-        tmux kill-session -t l4d2-backend
-        echo "[SUCCESS] Stopped tmux session: l4d2-backend"
-    fi
-    
-    # Kill any node processes running backend/index.js
+    # Kill node processes
     BACKEND_PIDS=$(ps aux | grep "node backend/index.js" | grep -v grep | awk '{print $2}')
     if [ -n "$BACKEND_PIDS" ]; then
         echo "Killing node processes: $BACKEND_PIDS"
@@ -113,23 +97,8 @@ stop_backend() {
         if [ -n "$BACKEND_PIDS" ]; then
             kill -9 $BACKEND_PIDS 2>/dev/null
         fi
-        echo "[SUCCESS] Stopped backend node processes"
+        echo "[SUCCESS] Backend stopped!"
     fi
-    
-    # Also kill any node processes from the project directory
-    NODE_PIDS=$(ps aux | grep "node" | grep "$SCRIPT_DIR" | grep -v grep | awk '{print $2}')
-    if [ -n "$NODE_PIDS" ]; then
-        echo "Killing project node processes: $NODE_PIDS"
-        kill $NODE_PIDS 2>/dev/null
-        sleep 1
-        NODE_PIDS=$(ps aux | grep "node" | grep "$SCRIPT_DIR" | grep -v grep | awk '{print $2}')
-        if [ -n "$NODE_PIDS" ]; then
-            kill -9 $NODE_PIDS 2>/dev/null
-        fi
-    fi
-    
-    echo ""
-    echo "[SUCCESS] Backend stopped!"
     echo ""
     read -p "Press Enter to return to menu..."
 }
@@ -147,22 +116,6 @@ view_status() {
         echo "  [RUNNING] Backend is active"
     else
         echo "  [STOPPED] Backend is not running"
-    fi
-    echo ""
-    
-    echo "Screen Sessions:"
-    if command -v screen &> /dev/null; then
-        screen -list 2>/dev/null || echo "  No screen sessions found"
-    else
-        echo "  screen not installed"
-    fi
-    echo ""
-    
-    echo "Tmux Sessions:"
-    if command -v tmux &> /dev/null; then
-        tmux list-sessions 2>/dev/null || echo "  No tmux sessions found"
-    else
-        echo "  tmux not installed"
     fi
     echo ""
     
@@ -203,27 +156,24 @@ view_logs() {
     read -p "Press Enter to return to menu..."
 }
 
-# Function to attach to backend session
-attach_backend() {
-    if screen -list | grep -q "l4d2-backend"; then
-        echo "Attaching to screen session..."
-        echo "Press Ctrl+A then D to detach"
-        sleep 1
-        screen -r l4d2-backend
-        return
-    fi
-    
-    if tmux has-session -t l4d2-backend 2>/dev/null; then
-        echo "Attaching to tmux session..."
-        echo "Press Ctrl+B then D to detach"
-        sleep 1
-        tmux attach -t l4d2-backend
-        return
-    fi
-    
-    echo "[ERROR] No screen or tmux session found!"
+# Function to follow logs
+follow_logs() {
+    clear
+    echo "================================================================================"
+    echo "                              Following L4D2 Logs"
+    echo "================================================================================"
     echo ""
-    read -p "Press Enter to return to menu..."
+    echo "Press Ctrl+C to stop following logs"
+    echo "------------------------------------------------------------------------"
+    echo ""
+    
+    if [ -f "backend.log" ]; then
+        tail -f backend.log
+    else
+        echo "No log file found (backend.log)"
+        echo ""
+        read -p "Press Enter to return to menu..."
+    fi
 }
 
 # Main menu function
@@ -258,10 +208,8 @@ show_menu() {
     echo "  1. Start Backend"
     echo "  2. Stop Backend"
     echo "  3. View Status"
-    echo "  4. View Logs"
-    if command -v screen &> /dev/null || command -v tmux &> /dev/null; then
-        echo "  5. Attach to Backend Session"
-    fi
+    echo "  4. View Logs (last 50 lines)"
+    echo "  5. Follow Logs (live)"
     echo "  0. Exit"
     echo ""
     read -p "Enter your choice [0-5]: " choice
@@ -280,7 +228,7 @@ show_menu() {
             view_logs
             ;;
         5)
-            attach_backend
+            follow_logs
             ;;
         0)
             echo ""

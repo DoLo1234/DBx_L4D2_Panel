@@ -30,24 +30,25 @@
 
 ## 📸 界面预览
 
-<div align="center">
-
 ### 主页仪表盘
+
 ![主页](frontend/images/主页.png)
 
 ### 服务器管理
+
 ![服务器管理](frontend/images/服务器管理.png)
 
 ### 插件管理
+
 ![插件管理](frontend/images/插件.png)
 
 ### 具体插件分配
+
 ![具体插件分配](frontend/images/具体插件分配.png)
 
 ### 地图管理
-![地图管理](frontend/images/地图.png)
 
-</div>
+![地图管理](frontend/images/地图.png)
 
 ## 🚀 快速开始
 
@@ -60,13 +61,13 @@
   - npm/yarn/pnpm
   - Linux 系统(推荐,用于运行 L4D2 服务器)
 
-### Docker 部署(推荐)
+## Docker 部署(推荐)
 
 #### 1. 克隆项目
 
 ```bash
-git clone https://github.com/your-username/l4d2-manager.git
-cd l4d2-manager
+git clone https://github.com/DoLo1234/DBx_L4D2_Panel.git
+cd DBx_L4D2_Panel
 ```
 
 #### 2. 构建并启动
@@ -75,7 +76,73 @@ cd l4d2-manager
 docker-compose up -d
 ```
 
-#### 3. 访问面板
+## 普通启动方式
+
+**Windows 用户（推荐）：**
+
+- 启动时最好是权限高的用户-因为地图分配要使用到软连接
+- 直接以管理员身份运行 `start.bat` 文件，或命令行执行：
+
+```bash
+start.bat
+```
+
+脚本会自动请求管理员权限，然后在新窗口中启动后端服务。
+
+**Linux 用户（推荐）：**
+
+- 启动时最好是权限高的用户-因为地图分配要使用到软连接
+- 使用交互式菜单脚本 `start.sh` 进行管理：
+
+- 先确保安装node.js 24+版本
+- 官网链接 https://nodejs.org/zh-cn/download
+
+**安装依赖：**
+
+- node-pty 需要安装编译工具
+- build-essential python3
+
+```base
+sudo apt install -y make gcc g++ python3
+```
+
+- 注意!：如果启动报错请重新编译node-pty
+
+```bash
+npm rebuild node-pty
+```
+
+**后续执行脚本：**
+
+```bash
+# 首次设置执行权限
+chmod +x start.sh
+
+# 运行管理菜单
+./start.sh
+```
+
+交互式菜单提供以下功能：
+
+- **1. Start Backend** - 启动后端服务
+- **2. Stop Backend** - 停止后端服务
+- **3. View Status** - 查看运行状态
+- **4. View Logs** - 查看后端日志
+- **5. Attach to Session** - 连接到后端会话（如可用）
+- **0. Exit** - 退出菜单
+
+**💡 提示：**
+
+- 脚本会自动请求 root 权限
+- 所有管理功能都集成在一个菜单中
+
+**手动启动（不推荐）：**
+
+```bash
+node backend/index.js
+```
+
+## 访问面板
 
 打开浏览器访问：`http://localhost:11214`
 
@@ -109,60 +176,16 @@ PANEL_PASSWORD=your_secure_password
 # JWT 密钥(请修改为随机字符串)
 JWT_SECRET=your_jwt_secret_key_change_this
 
-# L4D2 服务器路径
+# L4D2 服务器路径-配置好路径
 SERVER_PATH=/path/to/l4d2server
 
-# SteamCMD 路径
+# SteamCMD 路径-配置好路径
 STEAMCMD_PATH=/path/to/steamcmd
 ```
 
-#### 3. 启动服务
+## 先安装node.js 24+版本
 
-**Windows 用户（推荐）：**
-
-- 启动时最好是权限高的用户-因为地图分配要使用到软连接
-- 直接以管理员身份运行 `start.bat` 文件，或命令行执行：
-
-```bash
-start.bat
-```
-
-脚本会自动请求管理员权限，然后在新窗口中启动后端服务。
-
-**Linux 用户（推荐）：**
-
-- 启动时最好是权限高的用户-因为地图分配要使用到软连接
-- 使用交互式菜单脚本 `start.sh` 进行管理：
-
-```bash
-# 首次设置执行权限
-chmod +x start.sh
-
-# 运行管理菜单
-./start.sh
-```
-
-交互式菜单提供以下功能：
-
-- **1. Start Backend** - 启动后端服务
-- **2. Stop Backend** - 停止后端服务
-- **3. View Status** - 查看运行状态
-- **4. View Logs** - 查看后端日志
-- **5. Attach to Session** - 连接到后端会话（如可用）
-- **0. Exit** - 退出菜单
-
-**💡 提示：**
-
-- 脚本会自动请求 root 权限
-- 优先使用 screen 或 tmux 保持后端在后台运行
-- 如果没有 screen/tmux，会降级使用 nohup
-- 所有管理功能都集成在一个菜单中，无需单独的停止脚本
-
-**手动启动（不推荐）：**
-
-```bash
-node backend/index.js
-```
+- 官网链接 https://nodejs.org/zh-cn/download
 
 #### 4. 启动前端开发服务器（仅开发模式）
 

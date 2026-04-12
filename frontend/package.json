@@ -1,7 +1,7 @@
 {
   "name": "l4d2-manager",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Left 4 Dead 2 服务器管理面板",
   "author": "DB_x L4D2 Panel Project",
   "type": "module",
