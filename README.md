@@ -28,28 +28,6 @@
 - **Docker 部署**：支持容器化一键部署
 - **响应式设计**：适配不同屏幕尺寸
 
-## 📸 界面预览
-
-### 主页仪表盘
-
-![主页](frontend/images/主页.png)
-
-### 服务器管理
-
-![服务器管理](frontend/images/服务器管理.png)
-
-### 插件管理
-
-![插件管理](frontend/images/插件.png)
-
-### 具体插件分配
-
-![具体插件分配](frontend/images/具体插件分配.png)
-
-### 地图管理
-
-![地图管理](frontend/images/地图.png)
-
 ## 🚀 快速开始
 
 ### 环境要求
@@ -60,6 +38,30 @@
   - Node.js 24+
   - npm/yarn/pnpm
   - Linux 系统(推荐,用于运行 L4D2 服务器)
+
+### ⚠️ 重要提示：32位兼容库
+
+**求生之路2(L4D2)是32位应用程序**,在 Linux 系统上运行时必须安装32位兼容库,否则服务器无法正常启动。
+
+**Ubuntu/Debian 系统:**
+
+```bash
+sudo apt install -y lib32gcc-s1 lib32stdc++6 lib32z1
+```
+
+**CentOS/RHEL 系统:**
+
+```bash
+sudo yum install -y glibc.i686 libstdc++.i686 zlib.i686
+```
+
+**Arch Linux 系统:**
+
+```bash
+sudo pacman -S lib32-gcc-libs
+```
+
+> 💡 **提示**: Docker 部署已自动包含此依赖,无需手动安装。仅在本地 Linux 环境部署时需要手动安装。
 
 ## Docker 部署(推荐)
 
@@ -104,6 +106,7 @@ start.bat
 
 ```base
 sudo apt install -y make gcc g++ python3
+npm install
 ```
 
 - 注意!：如果启动报错请重新编译node-pty
@@ -254,6 +257,28 @@ l4d2-manager/
 1. **浏览文件**：可视化浏览服务器文件系统
 2. **编辑配置**：在线编辑 CFG 配置文件
 3. **上传下载**：支持大文件分块上传
+
+## 📸 界面预览
+
+### 主页仪表盘
+
+![主页](frontend/images/主页.png)
+
+### 服务器管理
+
+![服务器管理](frontend/images/服务器管理.png)
+
+### 插件管理
+
+![插件管理](frontend/images/插件.png)
+
+### 具体插件分配
+
+![具体插件分配](frontend/images/具体插件分配.png)
+
+### 地图管理
+
+![地图管理](frontend/images/地图.png)
 
 ## 🔧 配置说明
 

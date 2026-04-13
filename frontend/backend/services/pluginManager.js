@@ -13,9 +13,6 @@ class PluginManager {
     this.serverPath = config.serverPath;
     this.availablePluginsPath = config.availablePluginsPath;
     this.installedReceiptsPath = config.installedReceiptsPath;
-    this.sourcemodInstallersPath = config.sourcemodInstallersPath;
-    this.sourcemodPath = config.sourcemodPath;
-    this.metamodPath = config.metamodPath;
     // 确保可用插件目录存在
     tools.ensureDirectoryExists(this.availablePluginsPath);
   }

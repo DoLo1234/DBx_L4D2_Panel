@@ -1,13 +1,9 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { styleText } from "util";
-
-// 加载环境变量
-dotenv.config();
 
 // Import shared modules
 import config from "./config/index.js";
@@ -74,6 +70,11 @@ console.log(`  ${colorize.yellow("路径:")} ${frontendDistPath}`);
 
 try {
   const stats = fs.statSync(frontendDistPath);
+  // 打印所有环境变量
+  console.log(
+    `  ${colorize.yellow("环境变量:")} ${config.serverPath || "未设置"} ${colorize.yellow("SteamCMD:")} ${config.steamcmdPath || "未设置"}`,
+  );
+
   console.log(
     `  ${colorize.yellow("状态:")} ${stats.isDirectory() ? colorize.green("✓ 存在") : colorize.red("✗ 不存在")}`,
   );

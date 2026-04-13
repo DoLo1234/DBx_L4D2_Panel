@@ -18,10 +18,9 @@ class SteamCMDService {
     this.steamcmdExe = config.steamcmdExe;
     this.steamcmdLinux32 = config.steamcmdLinux32;
 
-    // 确保SteamCMD目录存在
+    // SteamCMD目录存在（如果配置了的话）
     tools.ensureDirectoryExists(this.steamcmdPath);
-
-    // 确保server目录存在
+    // 服务器目录存在（如果配置了的话）
     tools.ensureDirectoryExists(this.serverPath);
   }
 
@@ -137,7 +136,7 @@ class SteamCMDService {
         );
 
         if (!(await tools.fileExists(steamcmdShPath))) {
-          const errorMessage = `未找到SteamCMD sh文件: ${steamcmdShPath}`;
+          const errorMessage = `未找到SteamCMD文件: ${steamcmdShPath}`;
           logger.steamcmd.error(errorMessage);
           this.addDeployLog(errorMessage, true);
           return false;
@@ -409,7 +408,7 @@ class SteamCMDService {
       logger.steamcmd.info(`开始服务器部署，用户: ${steamUser}`);
 
       // 构建SteamCMD命令
-      const steamcmdExePath = path.join(this.steamcmdPath, this.steamcmdExe);
+      let steamcmdExePath = path.join(this.steamcmdPath, this.steamcmdExe);
       let cmdArgs;
       const platform = process.platform;
 
@@ -463,11 +462,6 @@ class SteamCMDService {
           const platform = process.platform;
           const self = this; // 保存this引用
 
-          logger.steamcmd.info(`当前平台: ${platform}`);
-          logger.steamcmd.info(`SteamCMD可执行文件路径: ${steamcmdExePath}`);
-          logger.steamcmd.info(`服务器路径: ${this.serverPath}`);
-          logger.steamcmd.info(`命令参数: ${cmdArgs.join(" ")}`);
-
           // 使用node-pty创建伪终端，解决Windows平台的输出缓冲问题
           logger.steamcmd.info("使用node-pty创建SteamCMD进程");
           let command, args;
@@ -477,26 +471,34 @@ class SteamCMDService {
             args = cmdArgs;
           } else {
             // Linux平台
-            let steamcmdShPath = path.join(this.steamcmdPath, this.steamcmdExe);
+            steamcmdExePath = path.join(
+              this.steamcmdPath,
+              "linux32",
+              this.steamcmdLinux32,
+            );
             // 先检查sh文件是否存在-不存在则执行二进制文件
-            if (!(await tools.fileExists(steamcmdShPath))) {
-              logger.steamcmd.error(`SteamCMD.sh文件不存在-尝试执行二进制文件`);
-              //直接执行linux32目录下的steamcmd二进制文件
-              steamcmdShPath = path.join(
-                this.steamcmdPath,
-                "linux32",
-                this.steamcmdLinux32,
-              );
-              if (!(await tools.fileExists(steamcmdShPath))) {
-                logger.steamcmd.error(`SteamCMD二进制文件不存在`);
-                this.addDeployLog(`SteamCMD二进制文件不存在`, true);
-                throw new Error(`SteamCMD二进制文件不存在`);
-              }
-            }
-            command = steamcmdShPath;
+            // if (!(await tools.fileExists(steamcmdShPath))) {
+            //   logger.steamcmd.error(`SteamCMD.sh文件不存在-尝试执行二进制文件`);
+            //   //直接执行linux32目录下的steamcmd二进制文件
+            //   steamcmdShPath = path.join(
+            //     this.steamcmdPath,
+            //     "linux32",
+            //     this.steamcmdLinux32,
+            //   );
+            //   if (!(await tools.fileExists(steamcmdShPath))) {
+            //     logger.steamcmd.error(`SteamCMD二进制文件不存在`);
+            //     this.addDeployLog(`SteamCMD二进制文件不存在`, true);
+            //     throw new Error(`SteamCMD二进制文件不存在`);
+            //   }
+            // }
+            command = steamcmdExePath;
             args = cmdArgs;
           }
 
+          logger.steamcmd.info(`当前平台: ${platform}`);
+          logger.steamcmd.info(`SteamCMD可执行文件路径: ${steamcmdExePath}`);
+          logger.steamcmd.info(`服务器路径: ${this.serverPath}`);
+          logger.steamcmd.info(`命令参数: ${cmdArgs.join(" ")}`);
           logger.steamcmd.info(`正在执行SteamCMD: ${command}`);
           logger.steamcmd.info(`命令: ${command} ${args.join(" ")}`);
 
@@ -658,6 +660,8 @@ class SteamCMDService {
       })();
     } catch (error) {
       this.addDeployLog(`SteamCMD进程错误: ${error}`, true);
+      // 更新部署状态为失败
+      this.updateDeployStatus("failed", false);
       errorHandler.handleSteamCmdError(error);
     }
   }
@@ -729,12 +733,13 @@ class SteamCMDService {
     // 清除进程引用
     global.deployStatus.process = null;
     // 通过WebSocket发送状态更新
-    if (global.websocketService) {
-      global.websocketService.broadcast("deploy_status", {
-        status: "cancelled",
-        deploying: false,
-      });
-    }
+    // if (global.websocketService) {
+    //   global.websocketService.broadcast("deploy_status", {
+    //     status: "cancelled",
+    //     deploying: false,
+    //   });
+    // }
+    this.updateDeployStatus("cancelled", false);
     // 保存部署状态
     // global.saveDeployStatus(global.deployStatus);
     return true;

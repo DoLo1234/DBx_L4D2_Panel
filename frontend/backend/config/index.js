@@ -1,6 +1,8 @@
 import path from "path";
 import { fileURLToPath } from "url";
-
+import dotenv from "dotenv";
+// 加载环境变量
+dotenv.config();
 // 配置管理模块
 class Config {
   constructor() {
@@ -11,20 +13,23 @@ class Config {
     // 项目根目录
     const projectRoot = path.resolve(__dirname, "../../..");
 
-    // 服务器配置
-    this.serverPath = process.env.SERVER_PATH || "D:\\l4d2server";
-
-    // SteamCMD配置
+    // 根据平台设置配置
     const platform = process.platform;
+
+    // 服务器配置
     if (platform === "win32") {
-      this.steamcmdPath = process.env.STEAMCMD_PATH || "D:/steamcmd";
+      // Windows平台配置
+      this.serverPath = process.env.SERVER_PATH;
+      this.steamcmdPath = process.env.STEAMCMD_PATH;
       this.steamcmdExe = "steamcmd.exe";
     } else {
-      this.steamcmdPath = process.env.STEAMCMD_PATH || "/home/steam/steamcmd";
+      // Linux平台配置
+      this.serverPath = process.env.SERVER_PATH;
+      this.steamcmdPath = process.env.STEAMCMD_PATH;
+      // 暂时不用.sh文件，直接使用steamcmd
       this.steamcmdExe = "steamcmd.sh";
       this.steamcmdLinux32 = "steamcmd";
     }
-
     // 实例配置路径
     this.instancesPath = path.join(projectRoot, "app/instances");
 

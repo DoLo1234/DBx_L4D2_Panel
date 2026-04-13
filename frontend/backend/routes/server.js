@@ -426,6 +426,7 @@ router.delete("/instances/:name", authenticate, async (req, res) => {
  */
 router.get("/count", authenticate, async (req, res) => {
   try {
+    console.log("获取服务器数量", serversDir);
     // 确保服务器目录存在
     await tools.ensureDirectoryExists(serversDir);
 
