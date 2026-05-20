@@ -70,9 +70,10 @@ const fileApi = {
   /**
    * 上传文件
    * @param {FormData} formData - 表单数据，包含文件和路径
+   * @param {Object} config - axios配置选项（如 onUploadProgress）
    * @returns {Promise} - 上传结果
    */
-  uploadFile(formData) {
+  uploadFile(formData, config = {}) {
     return request({
       url: "/file/upload",
       method: "post",
@@ -80,6 +81,7 @@ const fileApi = {
       headers: {
         "Content-Type": "multipart/form-data",
       },
+      ...config,
     });
   },
 

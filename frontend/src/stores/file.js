@@ -33,9 +33,6 @@ const getOptimalChunkSize = () => {
     if (currentDownlink < 0.5) {
       // 小于 0.5 Mbps，极慢网络
       return 64 * 1024; // 64KB
-    } else if (currentDownlink < 2) {
-      // 0.5-2 Mbps，慢速网络
-      return 512 * 1024; // 512KB
     } else if (currentDownlink < 10) {
       // 2-10 Mbps，中等网络
       return 5 * 1024 * 1024; // 5MB
@@ -109,26 +106,17 @@ export const useFileStore = defineStore("file", () => {
         normalizedPath = `${normalizedPath}/${relativePath}`;
       }
 
-      // 模拟进度动画
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += Math.random() * 20 + 5;
-        if (progress > 90) {
-          progress = 90;
-          clearInterval(interval);
-        }
-        // 使用响应式更新
-        fileProgressMap.value[actualFileId] = {
-          ...fileProgressMap.value[actualFileId],
-          progress: Math.round(progress),
-        };
-      }, 100);
-
       await FileUploader.uploadSmallFile(file, {
         uploadPath: normalizedPath,
+        onProgress: (progress) => {
+          // 使用响应式更新
+          fileProgressMap.value[actualFileId] = {
+            ...fileProgressMap.value[actualFileId],
+            progress,
+          };
+        },
       });
 
-      clearInterval(interval);
       // 使用响应式更新
       fileProgressMap.value[actualFileId] = {
         ...fileProgressMap.value[actualFileId],
@@ -147,7 +135,9 @@ export const useFileStore = defineStore("file", () => {
   };
 
   /**
-   * 上传大文件（分块上传）
+   * 上传大文件（分块并发上传）
+   * 流程：初始化上传 → 服务器创建.temp文件夹 → 创建以uploadId命名的子文件夹 → 并发上传分片 → 合并
+   * 并发上传池：切好一个分片就投入上传，最多10路并发，有空位自动补充
    * @param {File} file - 要上传的文件
    * @param {string} uploadPath - 上传路径
    * @param {string} relativePath - 文件相对路径
@@ -185,6 +175,7 @@ export const useFileStore = defineStore("file", () => {
       await FileUploader.uploadLargeFile(file, {
         uploadPath: normalizedPath,
         chunkSize: optimalChunkSize,
+        maxConcurrency: 10, // 最大10路并发上传分片
         onProgress: (progress) => {
           // 使用响应式更新
           fileProgressMap.value[actualFileId] = {
@@ -230,6 +221,7 @@ export const useFileStore = defineStore("file", () => {
 
   /**
    * 提交文件上传
+   * 多个文件并发上传，每个大文件内部最多10路并发分片上传
    * @param {Array} files - 文件列表
    * @param {string} uploadPath - 上传路径
    * @param {Function} onSuccess - 成功回调
@@ -244,8 +236,8 @@ export const useFileStore = defineStore("file", () => {
     fileProgressMap.value = {};
 
     try {
-      // 遍历所有文件
-      for (const file of files) {
+      // 为所有文件初始化进度
+      const uploadTasks = files.map((file) => {
         const rawFile = file.raw;
         const relativePath = file.relativePath || "";
         const fileId = file.uid || file.name;
@@ -253,15 +245,16 @@ export const useFileStore = defineStore("file", () => {
         // 初始化文件进度
         getFileProgress(fileId);
 
-        // 检查文件大小
+        // 根据文件大小选择上传方式
         if (rawFile.size > 100 * 1024 * 1024) {
-          // 大文件使用分块上传
-          await uploadLargeFile(rawFile, uploadPath, relativePath, fileId);
+          return uploadLargeFile(rawFile, uploadPath, relativePath, fileId);
         } else {
-          // 小文件使用普通上传
-          await uploadSmallFile(rawFile, uploadPath, relativePath, fileId);
+          return uploadSmallFile(rawFile, uploadPath, relativePath, fileId);
         }
-      }
+      });
+
+      // 所有文件并发上传
+      await Promise.all(uploadTasks);
 
       if (onSuccess) {
         onSuccess();

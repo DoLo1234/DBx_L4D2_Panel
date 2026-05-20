@@ -461,7 +461,6 @@ class SteamCMDService {
           let steamcmdProcess;
           const platform = process.platform;
           const self = this; // 保存this引用
-
           // 使用node-pty创建伪终端，解决Windows平台的输出缓冲问题
           logger.steamcmd.info("使用node-pty创建SteamCMD进程");
           let command, args;

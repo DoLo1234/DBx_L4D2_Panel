@@ -152,83 +152,107 @@ app.use((err, req, res, next) => {
   errorHandler.handleApiError(res, err);
 });
 
-// 启动服务器
+// 启动服务器（确保所有异步初始化完成后再监听端口）
 const PORT = process.env.VITE_PORT || 11214;
-const server = app.listen(PORT, () => {
-  console.log(colorize.green("====================================="));
-  console.log(`${colorize.green("[服务器]")} 服务启动成功!`);
-  console.log(
-    `${colorize.green("[服务器]")} 本地:   ${colorize.cyan(`http://localhost:${PORT}`)}`,
-  );
-  console.log(
-    `${colorize.green("[服务器]")} 网络: ${colorize.cyan(`http://${localIP}:${PORT}`)}`,
-  );
-  console.log(
-    `${colorize.green("[服务器]")} API:     ${colorize.cyan(`http://${localIP}:${PORT}/api`)}`,
-  );
-  console.log(colorize.green("====================================="));
-  logger.app.info(`服务器已启动，监听端口: ${PORT} (IP: ${localIP})`);
-});
 
-// 初始化WebSocket服务
-websocketService.init(server);
-
-// 将WebSocket服务实例保存到全局变量，供其他模块使用
-global.websocketService = websocketService;
-
-// 处理SIGTERM信号（Docker容器停止时发送）
-process.on("SIGTERM", () => {
-  console.log(`${colorize.yellow("[SIGTERM]")} 收到终止信号，正在优雅关闭...`);
-
-  // 立即杀死部署进程
-  if (global.deployStatus && global.deployStatus.process) {
-    console.log(`${colorize.yellow("[SIGTERM]")} 正在终止部署进程...`);
-    try {
-      // 使用SIGKILL信号强制杀死进程
-      global.deployStatus.process.kill("SIGKILL");
-      console.log(`${colorize.green("[SIGTERM]")} 部署进程已终止`);
-    } catch (error) {
-      console.error(
-        `${colorize.red("[SIGTERM]")} 终止部署进程失败: ${error.message}`,
-      );
-    }
+async function startServer() {
+  // 等待所有必要的目录初始化完成
+  console.log(`${colorize.blue("[初始化]")} 正在确保数据目录存在...`);
+  try {
+    await Promise.all([
+      tools.ensureDirectoryExists(config.dataPath),
+      tools.ensureDirectoryExists(config.instancesPath),
+      tools.ensureDirectoryExists(config.availablePluginsPath),
+      tools.ensureDirectoryExists(config.installedReceiptsPath),
+      tools.ensureDirectoryExists(config.sourcemodInstallersPath),
+      tools.ensureDirectoryExists(config.logsPath),
+      tools.ensureDirectoryExists(config.mapsPath),
+      tools.ensureDirectoryExists(config.assignMapData),
+      config.serverPath
+        ? tools.ensureDirectoryExists(config.serverPath)
+        : Promise.resolve(),
+      config.steamcmdPath
+        ? tools.ensureDirectoryExists(config.steamcmdPath)
+        : Promise.resolve(),
+    ]);
+    console.log(
+      `${colorize.green("[初始化]")} 数据目录初始化完成`,
+    );
+  } catch (error) {
+    console.warn(
+      `${colorize.yellow("[警告]")} 部分目录初始化失败: ${error.message}`,
+    );
   }
 
-  // 优雅关闭服务器
-  console.log(`${colorize.yellow("[SIGTERM]")} 正在关闭服务器连接...`);
-  server.close((err) => {
-    if (err) {
-      console.error(
-        `${colorize.red("[SIGTERM]")} 关闭服务器失败: ${err.message}`,
-      );
-      process.exit(1);
-    }
-    console.log(`${colorize.green("[SIGTERM]")} 服务器已优雅关闭`);
-    console.log(`${colorize.green("[SIGTERM]")} 正在退出`);
-    process.exit(0);
+  const server = app.listen(PORT, () => {
+    console.log(colorize.green("====================================="));
+    console.log(`${colorize.green("[服务器]")} 服务启动成功!`);
+    console.log(
+      `${colorize.green("[服务器]")} 本地:   ${colorize.cyan(`http://localhost:${PORT}`)}`,
+    );
+    console.log(
+      `${colorize.green("[服务器]")} 网络: ${colorize.cyan(`http://${localIP}:${PORT}`)}`,
+    );
+    console.log(
+      `${colorize.green("[服务器]")} API:     ${colorize.cyan(`http://${localIP}:${PORT}/api`)}`,
+    );
+    console.log(colorize.green("====================================="));
+    logger.app.info(`服务器已启动，监听端口: ${PORT} (IP: ${localIP})`);
   });
 
-  // 设置超时，防止优雅关闭超时
-  setTimeout(() => {
-    console.log(`${colorize.red("[SIGTERM]")} 优雅关闭超时，立即退出`);
-    process.exit(0);
-  }, 5000);
-});
+  // 初始化WebSocket服务
+  websocketService.init(server);
 
-// 处理SIGINT信号（Ctrl+C时发送）
-process.on("SIGINT", () => {
-  console.log(`${colorize.yellow("[SIGINT]")} 收到中断信号，正在关闭...`);
-  process.emit("SIGTERM");
-});
+  // 将WebSocket服务实例保存到全局变量，供其他模块使用
+  global.websocketService = websocketService;
 
-// 处理未捕获的错误
-process.on("uncaughtException", (error) => {
-  console.error(`${colorize.red("[错误]")} 未捕获的异常:`, error);
-  // 这里可以添加更多的错误处理逻辑，例如重启服务
-});
+  // 处理SIGTERM信号（Docker容器停止时发送）
+  process.on("SIGTERM", () => {
+    console.log(`${colorize.yellow("[SIGTERM]")} 收到终止信号，正在优雅关闭...`);
 
-// 处理未处理的Promise拒绝
-process.on("unhandledRejection", (reason, promise) => {
-  console.error(`${colorize.red("[错误]")} 未处理的Promise拒绝:`, reason);
-  // 这里可以添加更多的错误处理逻辑
+    // 立即杀死部署进程
+    if (global.deployStatus && global.deployStatus.process) {
+      console.log(`${colorize.yellow("[SIGTERM]")} 正在终止部署进程...`);
+      try {
+        // 使用SIGKILL信号强制杀死进程
+        global.deployStatus.process.kill("SIGKILL");
+        console.log(`${colorize.green("[SIGTERM]")} 部署进程已终止`);
+      } catch (error) {
+        console.error(
+          `${colorize.red("[SIGTERM]")} 终止部署进程失败: ${error.message}`,
+        );
+      }
+    }
+
+    // 优雅关闭服务器
+    console.log(`${colorize.yellow("[SIGTERM]")} 正在关闭服务器连接...`);
+    server.close((err) => {
+      if (err) {
+        console.error(
+          `${colorize.red("[SIGTERM]")} 关闭服务器失败: ${err.message}`,
+        );
+        process.exit(1);
+      }
+      console.log(`${colorize.green("[SIGTERM]")} 服务器已优雅关闭`);
+      console.log(`${colorize.green("[SIGTERM]")} 正在退出`);
+      process.exit(0);
+    });
+
+    // 设置超时，防止优雅关闭超时
+    setTimeout(() => {
+      console.log(`${colorize.red("[SIGTERM]")} 优雅关闭超时，立即退出`);
+      process.exit(0);
+    }, 5000);
+  });
+
+  // 处理SIGINT信号（Ctrl+C时发送）
+  process.on("SIGINT", () => {
+    console.log(`${colorize.yellow("[SIGINT]")} 收到中断信号，正在关闭...`);
+    process.emit("SIGTERM");
+  });
+}
+
+startServer().catch((error) => {
+  console.error(`${colorize.red("[错误]")} 服务器启动失败:`, error);
+  process.exit(1);
 });

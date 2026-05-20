@@ -245,6 +245,7 @@ const handleDeploy = async () => {
   await deployFormRef.value.validate(async (valid) => {
     if (!valid) return;
     deploying.value = true;
+    console.log("部署服务器:", props.serverCount);
     try {
       // 确定服务器名称
       if (props.isDeployToDirectory) {
@@ -255,7 +256,13 @@ const handleDeploy = async () => {
         serverName.value = `server${String(props.serverCount + 1).padStart(2, "0")}`;
       }
       console.log("部署服务器:", serverName.value);
-      console.log("部署表单:", deployForm.value);
+      console.log("部署名:", props.deployToDirectoryName);
+      console.log("部署对象:", {
+        steamUser: deployForm.value.steamUser,
+        steamPassword: deployForm.value.steamPassword,
+        serverName: serverName.value,
+        interactive: deployForm.value.interactive,
+      });
       // 开始部署
       await deployStore.startDeploy({
         steamUser: deployForm.value.steamUser,

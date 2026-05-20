@@ -52,7 +52,14 @@ const storage = multer.diskStorage({
     } catch (e) {
       console.warn("文件名编码转换失败:", e);
     }
-    cb(null, originalName);
+    // 分块上传时使用唯一文件名，避免并发上传时文件互相覆盖
+    if (req.body.uploadId) {
+      const ext = path.extname(originalName);
+      const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
+      cb(null, uniqueName);
+    } else {
+      cb(null, originalName);
+    }
   },
 });
 

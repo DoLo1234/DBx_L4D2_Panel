@@ -109,7 +109,7 @@
     <!-- 部署服务器对话框 -->
     <DeployServerDialog
       v-model:visible="showDeployDialog"
-      :server-count="serverStore.serverCount"
+      :server-count="serverStore.servers.length"
       @deploy-success="handleDeploySuccess"
     />
 
