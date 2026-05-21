@@ -221,7 +221,7 @@ export const useFileStore = defineStore("file", () => {
 
   /**
    * 提交文件上传
-   * 多个文件并发上传，每个大文件内部最多10路并发分片上传
+   * 使用并发上传池，最多同时10个上传任务，完成一个立即补充下一个
    * @param {Array} files - 文件列表
    * @param {string} uploadPath - 上传路径
    * @param {Function} onSuccess - 成功回调
@@ -235,38 +235,39 @@ export const useFileStore = defineStore("file", () => {
     // 清空之前的进度信息
     fileProgressMap.value = {};
 
-    try {
-      // 为所有文件初始化进度
-      const uploadTasks = files.map((file) => {
-        const rawFile = file.raw;
-        const relativePath = file.relativePath || "";
-        const fileId = file.uid || file.name;
+    // 构建上传任务函数数组
+    const taskFns = files.map((file) => {
+      const rawFile = file.raw;
+      const relativePath = file.relativePath || "";
+      const fileId = file.uid || file.name;
 
-        // 初始化文件进度
-        getFileProgress(fileId);
+      // 初始化文件进度
+      getFileProgress(fileId);
 
-        // 根据文件大小选择上传方式
-        if (rawFile.size > 100 * 1024 * 1024) {
-          return uploadLargeFile(rawFile, uploadPath, relativePath, fileId);
-        } else {
-          return uploadSmallFile(rawFile, uploadPath, relativePath, fileId);
-        }
-      });
+      // 返回任务函数
+      return () =>
+        rawFile.size > 100 * 1024 * 1024
+          ? uploadLargeFile(rawFile, uploadPath, relativePath, fileId)
+          : uploadSmallFile(rawFile, uploadPath, relativePath, fileId);
+    });
 
-      // 所有文件并发上传
-      await Promise.all(uploadTasks);
+    // 使用并发上传池执行
+    const { errors } = await FileUploader.concurrentRun(taskFns, {
+      maxConcurrency: 10,
+    });
 
+    if (errors.length > 0) {
+      console.error("部分文件上传失败:", errors);
+      if (onError) {
+        onError(new Error(`${errors.length} 个文件上传失败`));
+      }
+    } else {
       if (onSuccess) {
         onSuccess();
       }
-    } catch (error) {
-      console.error("上传文件失败:", error);
-      if (onError) {
-        onError(error);
-      }
-    } finally {
-      uploading.value = false;
     }
+
+    uploading.value = false;
   };
 
   /**

@@ -538,6 +538,54 @@ class FileUploader {
         : undefined,
     });
   }
+
+  /**
+   * 并发执行任务池
+   * 最多同时执行 maxConcurrency 个任务，完成一个立即补充下一个
+   * @param {Array<Function>} taskFns - 任务函数数组，每个函数返回一个 Promise
+   * @param {Object} options - 配置选项
+   * @param {number} options.maxConcurrency - 最大并发数，默认10
+   * @returns {Promise<{results: Array, errors: Array}>} 所有任务的结果
+   */
+  static async concurrentRun(taskFns, options = {}) {
+    const { maxConcurrency = 10 } = options;
+    const results = new Array(taskFns.length);
+    const errors = [];
+
+    let queueIndex = 0;
+    let activeCount = 0;
+
+    return new Promise((resolve) => {
+      const runNext = () => {
+        while (queueIndex < taskFns.length && activeCount < maxConcurrency) {
+          const currentIndex = queueIndex++;
+          activeCount++;
+
+          taskFns[currentIndex]()
+            .then((result) => {
+              results[currentIndex] = result;
+            })
+            .catch((error) => {
+              errors.push({ index: currentIndex, error });
+            })
+            .finally(() => {
+              activeCount--;
+              runNext();
+              checkDone();
+            });
+        }
+      };
+
+      const checkDone = () => {
+        if (queueIndex >= taskFns.length && activeCount === 0) {
+          resolve({ results, errors });
+        }
+      };
+
+      runNext();
+      checkDone();
+    });
+  }
 }
 
 export { FileUploader };
