@@ -89,31 +89,25 @@ const navigateToPath = (path) => {
 
 <style scoped lang="scss">
 .breadcrumb {
-  padding: 10px 14px;
+  padding: 5px 10px;
   background-color: #ffffff;
   border: 1px solid #ebeef5;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   transition: box-shadow 0.3s ease;
   margin: 5px 0;
-  &:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
-  }
 
   :deep(.el-breadcrumb__item) {
-    font-size: 16px;
-
-    &:last-child {
-      color: #409eff;
-      font-weight: 500;
-    }
-
     .el-breadcrumb__inner {
       transition: color 0.3s ease;
-
+      padding: 5px;
       &:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        background-color: rgba(150, 216, 233, 0.253);
+        border-radius: 8px;
         text-decoration: underline;
         cursor: pointer;
+        color: #1489ff !important;
       }
     }
 

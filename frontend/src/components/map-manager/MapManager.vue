@@ -93,7 +93,7 @@
 </template>
 
 <script setup>
-import { ref, computed, inject, watch, reactive } from "vue";
+import { ref, computed, inject, watch, reactive, toRaw } from "vue";
 import FileList from "@/components/file-manager/FileList.vue";
 import MapActions from "@/components/map-manager/MapActions.vue";
 // import BreadcrumbNavigator from "@/components/file-manager/BreadcrumbNavigator.vue";
@@ -488,10 +488,23 @@ const unassignMap = async () => {
     return;
   }
   try {
+    // 根据当前选中的服务器，筛选出所有已分配的文件名
+    const maps = toRaw(mapStore.assignedMaps).filter(
+      (map) => map.serverName === serverForm.serverId,
+    );
+    if (maps.length === 0) {
+      await Swal.fire({
+        title: "取消分配地图提示",
+        text: "当前服务器未分配该地图",
+        icon: "info",
+        confirmButtonText: "确定",
+      });
+      return;
+    }
     // 这里可以添加实际的地图取消分配API调用
     const question = await Swal.fire({
       title: "确认取消分配",
-      text: `确定要从服务器 ${serverForm.serverId} 取消分配 ${selectedFiles.value.map((file) => file.name).join("、")} 吗？`,
+      html: `确定要从服务器 <span style="color: #409EFF;">${serverForm.serverId}</span> 取消分配 <br/> ${maps.map((file) => `<span style="color: #409EFF;">${file.mapName}</span>`).join("<br/>")}`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",
@@ -501,19 +514,18 @@ const unassignMap = async () => {
     });
     if (!question.isConfirmed) return;
     loading.value = true;
-
-    await mapStore.unassignMap(selectedFiles.value, serverForm.serverId);
-
-    Swal.fire({
+    console.log("取消分配地图", maps);
+    await mapStore.unassignMap(maps, serverForm.serverId);
+    await Swal.fire({
       title: "成功",
-      text: `成功从服务器 ${serverForm.serverId} 取消分配 ${selectedFiles.value.map((file) => file.name).join("、")}`,
+      html: `成功从服务器 <span style="color: #409EFF;">${serverForm.serverId}</span> 取消分配 <br/> ${maps.map((file) => `<span style="color: #67c23a;">${file.mapName}</span>`).join("<br/>")}`,
       icon: "success",
       confirmButtonText: "确定",
     });
 
     showMapAssignmentDialog.value = false;
     selectedFiles.value = [];
-    emit("activeServerName", serverForm.serverId);
+    emit("activeServerName", serverName);
   } catch (error) {
     console.error("取消分配地图失败:", error);
   } finally {

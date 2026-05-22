@@ -198,13 +198,14 @@ const loadFiles = async () => {
     files.value = fileList;
     selectedFiles.value = [];
   } catch (error) {
-    console.error("加载文件失败:", error);
+    console.error("加载失败:", error);
     Swal.fire({
       title: "错误",
-      text: "加载文件失败",
+      text: "加载失败",
       icon: "error",
       confirmButtonText: "确定",
     });
+    currentPath.value = props.initialPath;
   }
 };
 

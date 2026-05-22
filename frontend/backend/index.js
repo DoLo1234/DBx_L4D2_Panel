@@ -10,6 +10,7 @@ import config from "./config/index.js";
 import logger from "./utils/logger.js";
 import tools from "./utils/tools.js";
 import errorHandler from "./utils/errorHandler.js";
+import { initPM2 } from "./utils/processManager.js";
 import websocketService from "./services/websocketService.js";
 
 // 创建Express应用
@@ -175,13 +176,20 @@ async function startServer() {
         ? tools.ensureDirectoryExists(config.steamcmdPath)
         : Promise.resolve(),
     ]);
-    console.log(
-      `${colorize.green("[初始化]")} 数据目录初始化完成`,
-    );
+    console.log(`${colorize.green("[初始化]")} 数据目录初始化完成`);
   } catch (error) {
     console.warn(
       `${colorize.yellow("[警告]")} 部分目录初始化失败: ${error.message}`,
     );
+  }
+
+  // 预初始化 PM2 连接，避免首次请求时 PM2 守护进程启动导致超时
+  console.log(`${colorize.blue("[初始化]")} 正在初始化 PM2 连接...`);
+  try {
+    await initPM2();
+    console.log(`${colorize.green("[初始化]")} PM2 连接成功`);
+  } catch (error) {
+    console.warn(`${colorize.yellow("[警告]")} PM2 连接失败: ${error.message}`);
   }
 
   const server = app.listen(PORT, () => {
@@ -208,7 +216,9 @@ async function startServer() {
 
   // 处理SIGTERM信号（Docker容器停止时发送）
   process.on("SIGTERM", () => {
-    console.log(`${colorize.yellow("[SIGTERM]")} 收到终止信号，正在优雅关闭...`);
+    console.log(
+      `${colorize.yellow("[SIGTERM]")} 收到终止信号，正在优雅关闭...`,
+    );
 
     // 立即杀死部署进程
     if (global.deployStatus && global.deployStatus.process) {

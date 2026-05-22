@@ -58,7 +58,19 @@ const storage = multer.diskStorage({
       const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
       cb(null, uniqueName);
     } else {
-      cb(null, originalName);
+      // 替换 macOS/Linux/Windows 不允许的文件名特殊字符为下划线（保留最后一个.作为后缀分隔符）
+      const lastDotIndex = originalName.lastIndexOf(".");
+      let sanitizedName;
+      if (lastDotIndex > 0) {
+        const namePart = originalName
+          .substring(0, lastDotIndex)
+          .replace(/[<>:"/\\|?*\x00-\x1f.]/g, "_");
+        const extPart = originalName.substring(lastDotIndex);
+        sanitizedName = namePart + extPart;
+      } else {
+        sanitizedName = originalName.replace(/[<>:"/\\|?*\x00-\x1f.]/g, "_");
+      }
+      cb(null, sanitizedName);
     }
   },
 });

@@ -268,8 +268,8 @@ const refreshInstances = async () => {
 };
 
 // 页面加载时获取状态
-onMounted(async () => {
-  await getServerStatus();
+onMounted(() => {
+  getServerStatus();
   window.addEventListener("deploy:status-updated", deployStatusUpdatedHandler);
   window.addEventListener("layout:refresh", layoutRefreshHandler);
 });

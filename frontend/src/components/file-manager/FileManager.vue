@@ -135,7 +135,8 @@ const loadFiles = async () => {
     files.value = fileList;
     selectedFiles.value = [];
   } catch (error) {
-    console.error("加载文件失败:", error);
+    console.error("加载失败:", error);
+    currentPath.value = props.initialPath;
   }
 };
 

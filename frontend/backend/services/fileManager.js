@@ -205,6 +205,19 @@ class FileManager {
       throw new Error("缺少必要的参数");
     }
 
+    // 替换 macOS/Linux/Windows 不允许的文件名特殊字符为下划线（保留最后一个.作为后缀分隔符）
+    const lastDotIndex = filename.lastIndexOf(".");
+    let sanitizedFilename;
+    if (lastDotIndex > 0) {
+      const namePart = filename
+        .substring(0, lastDotIndex)
+        .replace(/[<>:"/\\|?*\x00-\x1f.]/g, "_");
+      const extPart = filename.substring(lastDotIndex);
+      sanitizedFilename = namePart + extPart;
+    } else {
+      sanitizedFilename = filename.replace(/[<>:"/\\|?*\x00-\x1f.]/g, "_");
+    }
+
     // 根据目录类型获取具体目录路径
     if (!uploadPath) {
       // 如果没有指定目录类型，直接取消上传
@@ -237,7 +250,7 @@ class FileManager {
     this.uploadStatus[uploadId] = {
       status: "initialized",
       progress: 0,
-      filename,
+      filename: sanitizedFilename,
       totalSize,
       chunkSize,
       totalChunks,

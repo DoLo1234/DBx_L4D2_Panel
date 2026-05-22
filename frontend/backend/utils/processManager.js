@@ -14,7 +14,7 @@ const isWindows = os.platform() === "win32";
 /**
  * 初始化 PM2 全局连接（仅一次）
  */
-const initPM2 = async () => {
+export const initPM2 = async () => {
   if (pm2Connected) return;
   return new Promise((resolve, reject) => {
     pm2.connect((err) => {

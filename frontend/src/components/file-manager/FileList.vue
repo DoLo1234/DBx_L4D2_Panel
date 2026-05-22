@@ -18,7 +18,9 @@
           />
           <template v-else>
             <Icon
-              v-if="assignedMapsComputed.includes(file.name)"
+              v-if="
+                assignedMapsComputed.some((map) => map.mapName === file.name)
+              "
               icon="mdi:file-check"
               style="color: #67c23a"
             />
@@ -26,10 +28,22 @@
           </template>
         </div>
         <div class="file-name">{{ file.name }}</div>
-        <div class="file-size" v-if="file.type === 'file'">
-          {{ formatFileSize(file.size || 0) }}
+        <div class="file-right">
+          <div class="size-box" v-if="file.type === 'file'">
+            <div class="file-size">
+              {{ formatFileSize(file.size || 0) }}
+            </div>
+            <div
+              v-if="
+                assignedMapsComputed.some((map) => map.mapName === file.name)
+              "
+              class="file-assign"
+            >
+              {{ assignedServers(file) }}
+            </div>
+          </div>
+          <div class="file-size" v-else>文件夹</div>
         </div>
-        <div class="file-size" v-else>文件夹</div>
       </div>
     </div>
   </div>
@@ -57,9 +71,14 @@ const props = defineProps({
 });
 const emit = defineEmits(["toggleSelectFile", "handleDoubleClick"]);
 
-const assignedMapsComputed = computed(() =>
-  props.assignedMaps.map((map) => map.mapName),
-);
+const assignedMapsComputed = computed(() => props.assignedMaps);
+
+const assignedServers = (file) => {
+  return assignedMapsComputed.value
+    .filter((map) => map.mapName === file.name)
+    .map((map) => map.serverName)
+    .join("，");
+};
 const toggleSelectFile = (file) => {
   emit("toggleSelectFile", file);
 };
@@ -94,8 +113,9 @@ const formatFileSize = (bytes) => {
 .file-item {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
+  padding: 12px;
   cursor: pointer;
+  gap: 4px;
   transition: background-color 0.3s ease;
   border: 1px solid #ebeef5;
   border-radius: 12px;
@@ -111,8 +131,6 @@ const formatFileSize = (bytes) => {
 
 .file-icon {
   font-size: 20px;
-  margin-right: 5px;
-  min-width: 24px;
   text-align: left;
 }
 
@@ -128,11 +146,24 @@ const formatFileSize = (bytes) => {
   line-height: 1.4;
 }
 
+.file-right {
+  display: flex;
+  align-items: center;
+  .size-box {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+}
+
 .file-size {
   font-size: 12px;
   color: #909399;
   text-align: right;
-  margin-right: 10px;
+}
+.file-assign {
+  font-size: 12px;
+  color: #909399;
 }
 
 .empty-files {

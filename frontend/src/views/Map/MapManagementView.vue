@@ -109,21 +109,24 @@ const mapStore = useMapStore();
 const instanceStore = useInstanceStore();
 
 // 定义事件
-const emit = defineEmits(["fileUpdated"]);
+// const emit = defineEmits(["fileUpdated"]);
 
 // 处理文件更新
 const handleFileUpdated = () => {
   // 文件更新后触发事件
-  emit("fileUpdated");
+  // emit("fileUpdated");
   // 可以在这里添加更新统计数据的逻辑
-  mapStore.getMapsOverview();
+  mapStore.getMapsOverview(selectedServerName.value);
 };
+
+const selectedServerName = ref("");
 
 // 处理服务器名称变化
 const handleActiveServerName = (serverName) => {
   console.log("服务器名称变化:", serverName);
   // 可以在这里添加更新统计数据的逻辑
   mapStore.getMapsOverview(serverName);
+  selectedServerName.value = serverName;
 };
 
 // 页面加载时获取地图目录路径

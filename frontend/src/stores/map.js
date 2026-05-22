@@ -162,7 +162,7 @@ export const useMapStore = defineStore("map", () => {
       }
 
       for (const map of maps) {
-        await mapApi.unassignMap(map.name, serverName);
+        await mapApi.unassignMap(map.mapName, serverName);
       }
 
       // 重新获取地图统计数据

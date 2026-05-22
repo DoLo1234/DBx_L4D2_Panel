@@ -752,7 +752,7 @@ class SteamCMDService {
         const serverDirs = fs.readdirSync(this.serverPath);
         console.log("打印服务器目录:", serverDirs);
         // 检查是否有有效的服务器目录（包含启动文件）
-        const hasValidServers = serverDirs.some((dir) => {
+        for (const dir of serverDirs) {
           const dirPath = path.join(this.serverPath, dir);
 
           // 检查是否是服务器目录
@@ -760,7 +760,7 @@ class SteamCMDService {
             !fs.statSync(dirPath).isDirectory() ||
             !dir.startsWith("server")
           ) {
-            return false;
+            continue;
           }
 
           // 根据平台检查启动文件
@@ -769,14 +769,12 @@ class SteamCMDService {
           const serverExePath = path.join(dirPath, serverExe);
 
           // 检查启动文件是否存在
-          return tools.fileExists(serverExePath);
-        });
-
-        if (hasValidServers) {
-          logger.steamcmd.info(
-            `服务器验证成功: 在 ${this.serverPath} 找到有效的服务器`,
-          );
-          return true;
+          if (await tools.fileExists(serverExePath)) {
+            logger.steamcmd.info(
+              `服务器验证成功: 在 ${this.serverPath} 找到有效的服务器`,
+            );
+            return true;
+          }
         }
       }
 
