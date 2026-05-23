@@ -134,12 +134,9 @@ class MapManager {
         if (fs.existsSync(targetFile)) {
           fs.unlinkSync(targetFile);
         }
-
-        await this.assignMapLinkToPath(mapPath, targetFile, "file");
-      } else {
-        // Linux 系统创建符号链接
-        await this.assignMapLinkToPath(mapPath, targetLinkPath, "file");
       }
+      // 创建符号链接
+      await this.assignMapLinkToPath(mapPath, targetLinkPath, "file");
 
       // 写入分配地图数据
       const assignMapDataConfigPath = path.join(
@@ -310,11 +307,13 @@ class MapManager {
         }
       }
 
+      console.log("已分配的文件", assignMapData);
+
       // 从分配地图数据中移除
       const updatedAssignMapData = assignMapData.filter(
-        (item) => item.mapName !== mapName,
+        (item) => !(item.mapName === mapName && item.serverName === serverName),
       );
-
+      console.log("updatedAssignMapData", updatedAssignMapData);
       // 写入分配地图数据
       const assignMapDataConfigPath = path.join(
         this.assignMapData,

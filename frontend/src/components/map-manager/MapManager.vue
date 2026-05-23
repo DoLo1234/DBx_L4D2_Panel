@@ -501,10 +501,16 @@ const unassignMap = async () => {
       });
       return;
     }
+    // 根据已分配的文件名，筛选出所有已分配的文件
+    const assignedFiles = toRaw(selectedFiles.value).filter((map) =>
+      maps.find((file) => file.mapName === map.name),
+    );
+
+    console.log("已分配的文件", assignedFiles);
     // 这里可以添加实际的地图取消分配API调用
     const question = await Swal.fire({
       title: "确认取消分配",
-      html: `确定要从服务器 <span style="color: #409EFF;">${serverForm.serverId}</span> 取消分配 <br/> ${maps.map((file) => `<span style="color: #409EFF;">${file.mapName}</span>`).join("<br/>")}`,
+      html: `确定要从服务器 <span style="color: #409EFF;">${serverForm.serverId}</span> 取消分配 <br/> ${assignedFiles.map((file) => `<span style="color: #409EFF;">${file.name}</span>`).join("<br/>")}`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",
@@ -514,18 +520,17 @@ const unassignMap = async () => {
     });
     if (!question.isConfirmed) return;
     loading.value = true;
-    console.log("取消分配地图", maps);
-    await mapStore.unassignMap(maps, serverForm.serverId);
+    await mapStore.unassignMap(assignedFiles, serverForm.serverId);
     await Swal.fire({
       title: "成功",
-      html: `成功从服务器 <span style="color: #409EFF;">${serverForm.serverId}</span> 取消分配 <br/> ${maps.map((file) => `<span style="color: #67c23a;">${file.mapName}</span>`).join("<br/>")}`,
+      html: `成功从服务器 <span style="color: #409EFF;">${serverForm.serverId}</span> 取消分配 <br/> ${assignedFiles.map((file) => `<span style="color: #67c23a;">${file.name}</span>`).join("<br/>")}`,
       icon: "success",
       confirmButtonText: "确定",
     });
 
     showMapAssignmentDialog.value = false;
     selectedFiles.value = [];
-    emit("activeServerName", serverName);
+    emit("activeServerName", serverForm.serverId);
   } catch (error) {
     console.error("取消分配地图失败:", error);
   } finally {
