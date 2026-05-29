@@ -308,6 +308,21 @@ const handleDeleteFile = async () => {
     return;
   }
 
+  // 根据已选的文件，筛选出所有已分配的文件
+  const assignedFiles = toRaw(mapStore.assignedMaps).filter((map) =>
+    selectedFiles.value.find((file) => file.name === map.mapName),
+  );
+
+  if (assignedFiles.length > 0) {
+    Swal.fire({
+      title: "提示",
+      html: `已分配的地图文件不能删除：<br/>${assignedFiles.map((f) => `<span style="color: red;">${f.mapName}</span>`).join("<br/>")}`,
+      icon: "warning",
+      confirmButtonText: "确定",
+    });
+    return;
+  }
+
   try {
     const fileNames = selectedFiles.value.map((file) => file.name).join("、");
     const result = await Swal.fire({

@@ -1,49 +1,81 @@
 import { defineStore } from "pinia";
-import { reactive, toRefs, ref } from "vue";
+import { ref } from "vue";
 import { FileUploader } from "@/utils/fileUploader";
 import { fileApi } from "@/api";
-import { useNetwork } from "@vueuse/core";
 
-const network = reactive(useNetwork());
-const { saveData, downlink, rtt } = toRefs(network);
+/**
+ * 大文件阈值：超过此大小使用分块上传
+ */
+const LARGE_FILE_THRESHOLD = 100 * 1024 * 1024;
+
+/**
+ * 默认分块大小
+ */
+const DEFAULT_CHUNK_SIZE = 5 * 1024 * 1024;
+
+/**
+ * 最大并发上传数
+ */
+const MAX_UPLOAD_CONCURRENCY = 10;
+
+/**
+ * 分块大小预设值
+ */
+const CHUNK_SIZE_PRESETS = {
+  SAVE_DATA: 128 * 1024, // 128KB - 省流量模式
+  HIGH_RTT: 512 * 1024, // 512KB - 高延迟网络
+  VERY_SLOW: 64 * 1024, // 64KB - 极慢网络
+  MEDIUM: 5 * 1024 * 1024, // 5MB - 中等网络
+  FAST: 10 * 1024 * 1024, // 10MB - 快速网络
+};
 
 /**
  * 根据网络状况获取合适的分块大小
  * 综合使用 Network Information API 的多个指标来判断网络质量
+ * @param {Object} networkInfo - 网络信息对象
+ * @param {boolean} networkInfo.saveData - 是否开启省流量模式
+ * @param {number} networkInfo.rtt - 往返时间(ms)
+ * @param {number} networkInfo.downlink - 下行速度(Mbps)
  * @returns {number} 分块大小（字节）
  */
-const getOptimalChunkSize = () => {
-  const currentDownlink = downlink.value;
-  const currentRtt = rtt.value;
-  const currentSaveData = saveData.value;
-
+const getOptimalChunkSize = (networkInfo) => {
   // 如果开启了省流量模式，使用较小的分块
-  if (currentSaveData) {
-    return 128 * 1024; // 128KB
-  }
+  if (networkInfo.saveData) return CHUNK_SIZE_PRESETS.SAVE_DATA;
 
-  // 根据 RTT (往返时间) 判断网络延迟
-  // RTT > 500ms 认为是高延迟网络
-  if (currentRtt && currentRtt > 500) {
-    return 512 * 1024; // 512KB
-  }
+  // 根据 RTT (往返时间) 判断网络延迟，RTT > 500ms 认为是高延迟网络
+  if (networkInfo.rtt && networkInfo.rtt > 500)
+    return CHUNK_SIZE_PRESETS.HIGH_RTT;
 
   // 根据下行速度判断
-  if (currentDownlink !== undefined && currentDownlink !== null) {
-    if (currentDownlink < 0.5) {
+  if (networkInfo.downlink !== undefined && networkInfo.downlink !== null) {
+    if (networkInfo.downlink < 0.5) {
       // 小于 0.5 Mbps，极慢网络
-      return 64 * 1024; // 64KB
-    } else if (currentDownlink < 10) {
-      // 2-10 Mbps，中等网络
-      return 5 * 1024 * 1024; // 5MB
+      return CHUNK_SIZE_PRESETS.VERY_SLOW;
+    } else if (networkInfo.downlink < 10) {
+      // 0.5-10 Mbps，中等网络
+      return CHUNK_SIZE_PRESETS.MEDIUM;
     } else {
       // 大于 10 Mbps，快速网络
-      return 10 * 1024 * 1024; // 10MB
+      return CHUNK_SIZE_PRESETS.FAST;
     }
   }
 
   // 默认分块大小
-  return 5 * 1024 * 1024; // 5MB
+  return DEFAULT_CHUNK_SIZE;
+};
+
+/**
+ * 标准化上传路径，确保使用统一的正斜杠分隔符
+ * @param {string} uploadPath - 上传路径
+ * @param {string} relativePath - 文件相对路径
+ * @returns {string} 标准化后的路径
+ */
+const normalizeUploadPath = (uploadPath, relativePath = "") => {
+  let normalized = uploadPath.replace(/\\/g, "/");
+  if (relativePath) {
+    normalized = `${normalized}/${relativePath}`;
+  }
+  return normalized;
 };
 
 /**
@@ -52,26 +84,37 @@ const getOptimalChunkSize = () => {
 export const useFileStore = defineStore("file", () => {
   // 状态
   const uploading = ref(false);
-  // 存储每个文件的进度信息 - 使用响应式对象替代 Map
+  // 存储每个文件的进度信息
   const fileProgressMap = ref({});
-
   // 存储待上传的文件列表
   const uploadFiles = ref([]);
 
   /**
-   * 获取或创建文件的进度信息
+   * 更新文件进度信息（响应式更新）
    * @param {string} fileId - 文件唯一标识
-   * @returns {Object} - 进度信息对象
+   * @param {Object} updates - 要更新的字段
    */
-  const getFileProgress = (fileId) => {
-    if (!fileProgressMap.value[fileId]) {
-      fileProgressMap.value[fileId] = {
-        progress: 0,
-        status: "",
-        name: "",
-      };
-    }
-    return fileProgressMap.value[fileId];
+  const updateFileProgress = (fileId, updates) => {
+    fileProgressMap.value = {
+      ...fileProgressMap.value,
+      [fileId]: {
+        ...fileProgressMap.value[fileId],
+        ...updates,
+      },
+    };
+  };
+
+  /**
+   * 初始化文件进度信息
+   * @param {string} fileId - 文件唯一标识
+   * @param {string} name - 文件名
+   * @param {string} status - 初始状态
+   */
+  const initFileProgress = (fileId, name, status) => {
+    fileProgressMap.value = {
+      ...fileProgressMap.value,
+      [fileId]: { progress: 0, status, name },
+    };
   };
 
   /**
@@ -89,47 +132,26 @@ export const useFileStore = defineStore("file", () => {
     fileId,
   ) => {
     const actualFileId = fileId || file.name;
+    const normalizedPath = normalizeUploadPath(uploadPath, relativePath);
 
-    // 初始化进度信息 - 使用响应式更新
-    fileProgressMap.value[actualFileId] = {
-      progress: 0,
-      status: `上传中: ${file.name}`,
-      name: file.name,
-    };
+    initFileProgress(actualFileId, file.name, `上传中: ${file.name}`);
 
     try {
-      // 确保使用统一的正斜杠分隔符
-      let normalizedPath = uploadPath.replace(/\\/g, "/");
-
-      // 如果有相对路径，添加到上传路径中
-      if (relativePath) {
-        normalizedPath = `${normalizedPath}/${relativePath}`;
-      }
-
       await FileUploader.uploadSmallFile(file, {
         uploadPath: normalizedPath,
         onProgress: (progress) => {
-          // 使用响应式更新
-          fileProgressMap.value[actualFileId] = {
-            ...fileProgressMap.value[actualFileId],
-            progress,
-          };
+          updateFileProgress(actualFileId, { progress });
         },
       });
-
-      // 使用响应式更新
-      fileProgressMap.value[actualFileId] = {
-        ...fileProgressMap.value[actualFileId],
+      updateFileProgress(actualFileId, {
         progress: 100,
         status: `完成上传: ${file.name}`,
-      };
+      });
     } catch (error) {
       console.error("上传失败:", error);
-      // 使用响应式更新
-      fileProgressMap.value[actualFileId] = {
-        ...fileProgressMap.value[actualFileId],
+      updateFileProgress(actualFileId, {
         status: `上传失败: ${error.message}`,
-      };
+      });
       throw error;
     }
   };
@@ -142,6 +164,9 @@ export const useFileStore = defineStore("file", () => {
    * @param {string} uploadPath - 上传路径
    * @param {string} relativePath - 文件相对路径
    * @param {string} fileId - 文件唯一标识
+   * @param {Object} options - 上传选项
+   * @param {number} options.chunkSize - 分块大小（默认5MB）
+   * @param {boolean} options.enableResume - 是否启用断点续传（默认false）
    * @returns {Promise<void>}
    */
   const uploadLargeFile = async (
@@ -149,72 +174,42 @@ export const useFileStore = defineStore("file", () => {
     uploadPath,
     relativePath = "",
     fileId,
+    options = {},
   ) => {
     const actualFileId = fileId || file.name;
+    const normalizedPath = normalizeUploadPath(uploadPath, relativePath);
 
-    // 初始化进度信息 - 使用响应式更新
-    fileProgressMap.value[actualFileId] = {
-      progress: 0,
-      status: "准备上传...",
-      name: file.name,
-    };
+    initFileProgress(actualFileId, file.name, "准备上传...");
+
+    const chunkSize = options.chunkSize || DEFAULT_CHUNK_SIZE;
+    const enableResume = options.enableResume ?? false;
 
     try {
-      // 确保使用统一的正斜杠分隔符
-      let normalizedPath = uploadPath.replace(/\\/g, "/");
-
-      // 如果有相对路径，添加到上传路径中
-      if (relativePath) {
-        normalizedPath = `${normalizedPath}/${relativePath}`;
-      }
-
-      // 根据网络状况获取合适的分块大小
-      const optimalChunkSize = getOptimalChunkSize();
-      console.log("Optimal Chunk Size:", optimalChunkSize);
-
       await FileUploader.uploadLargeFile(file, {
         uploadPath: normalizedPath,
-        chunkSize: optimalChunkSize,
-        maxConcurrency: 10, // 最大10路并发上传分片
+        chunkSize,
+        maxConcurrency: MAX_UPLOAD_CONCURRENCY,
+        enableResume,
         onProgress: (progress) => {
-          // 使用响应式更新
-          fileProgressMap.value[actualFileId] = {
-            ...fileProgressMap.value[actualFileId],
-            progress: progress,
-          };
+          updateFileProgress(actualFileId, { progress });
         },
         onStatus: (status) => {
-          // 使用响应式更新
-          fileProgressMap.value[actualFileId] = {
-            ...fileProgressMap.value[actualFileId],
-            status: status,
-          };
+          updateFileProgress(actualFileId, { status });
         },
-        // 启用断点续传
-        enableResume: false,
         // 计算文件哈希用于断点续传
         onHashProgress: (progress) => {
-          // 使用响应式更新
-          fileProgressMap.value[actualFileId] = {
-            ...fileProgressMap.value[actualFileId],
+          updateFileProgress(actualFileId, {
             status: `计算文件哈希进度: ${Math.round(progress * 100)}%`,
             progress: Math.round(progress * 100),
-          };
+          });
         },
       });
-
-      // 使用响应式更新
-      fileProgressMap.value[actualFileId] = {
-        ...fileProgressMap.value[actualFileId],
-        progress: 100,
-      };
+      updateFileProgress(actualFileId, { progress: 100 });
     } catch (error) {
       console.error("上传失败:", error);
-      // 使用响应式更新
-      fileProgressMap.value[actualFileId] = {
-        ...fileProgressMap.value[actualFileId],
+      updateFileProgress(actualFileId, {
         status: `上传失败: ${error.message}`,
-      };
+      });
       throw error;
     }
   };
@@ -226,14 +221,31 @@ export const useFileStore = defineStore("file", () => {
    * @param {string} uploadPath - 上传路径
    * @param {Function} onSuccess - 成功回调
    * @param {Function} onError - 错误回调
+   * @param {Object} options - 上传选项
+   * @param {number} options.largeFileThreshold - 大文件阈值（默认100MB）
+   * @param {number} options.chunkSize - 自定义分块大小
+   * @param {Object} options.networkInfo - 网络信息，用于自适应分块大小
+   * @param {boolean} options.enableResume - 是否启用断点续传
    * @returns {Promise<void>}
    */
-  const submitUpload = async (files, uploadPath, onSuccess, onError) => {
+  const submitUpload = async (
+    files,
+    uploadPath,
+    onSuccess,
+    onError,
+    options = {},
+  ) => {
     if (files.length === 0) return;
 
     uploading.value = true;
     // 清空之前的进度信息
     fileProgressMap.value = {};
+
+    const largeFileThreshold =
+      options.largeFileThreshold || LARGE_FILE_THRESHOLD;
+    const chunkSize =
+      options.chunkSize || getOptimalChunkSize(options.networkInfo || {});
+    const enableResume = options.enableResume ?? false;
 
     // 构建上传任务函数数组
     const taskFns = files.map((file) => {
@@ -242,18 +254,21 @@ export const useFileStore = defineStore("file", () => {
       const fileId = file.uid || file.name;
 
       // 初始化文件进度
-      getFileProgress(fileId);
+      initFileProgress(fileId, rawFile.name, "等待上传...");
 
-      // 返回任务函数
+      // 返回任务函数：大文件走分块上传，小文件走普通上传
       return () =>
-        rawFile.size > 100 * 1024 * 1024
-          ? uploadLargeFile(rawFile, uploadPath, relativePath, fileId)
+        rawFile.size > largeFileThreshold
+          ? uploadLargeFile(rawFile, uploadPath, relativePath, fileId, {
+              chunkSize,
+              enableResume,
+            })
           : uploadSmallFile(rawFile, uploadPath, relativePath, fileId);
     });
 
     // 使用并发上传池执行
     const { errors } = await FileUploader.concurrentRun(taskFns, {
-      maxConcurrency: 10,
+      maxConcurrency: MAX_UPLOAD_CONCURRENCY,
     });
 
     if (errors.length > 0) {
@@ -298,19 +313,11 @@ export const useFileStore = defineStore("file", () => {
     }
 
     try {
-      let newFilePath;
-      if (currentPath) {
-        // 确保使用统一的正斜杠分隔符
-        newFilePath = `${currentPath.replace(/\\/g, "/")}/${fileName}`;
-      } else {
-        newFilePath = fileName;
-      }
+      const newFilePath = currentPath
+        ? `${currentPath.replace(/\\/g, "/")}/${fileName}`
+        : fileName;
 
-      await fileApi.createFile({
-        path: newFilePath,
-        content: "",
-      });
-
+      await fileApi.createFile({ path: newFilePath, content: "" });
       return true;
     } catch (error) {
       console.error("创建文件失败:", error);
@@ -342,16 +349,11 @@ export const useFileStore = defineStore("file", () => {
     }
 
     try {
-      let newDirectoryPath;
-      if (currentPath) {
-        // 确保使用统一的正斜杠分隔符
-        newDirectoryPath = `${currentPath.replace(/\\/g, "/")}/${directoryName}`;
-      } else {
-        newDirectoryPath = directoryName;
-      }
+      const newDirectoryPath = currentPath
+        ? `${currentPath.replace(/\\/g, "/")}/${directoryName}`
+        : directoryName;
 
       await fileApi.createDirectory(newDirectoryPath);
-
       return true;
     } catch (error) {
       console.error("创建文件夹失败:", error);
@@ -371,7 +373,6 @@ export const useFileStore = defineStore("file", () => {
       for (const file of files) {
         await fileApi.deleteFile(file.path);
       }
-
       return true;
     } catch (error) {
       console.error("删除文件失败:", error);
@@ -404,11 +405,7 @@ export const useFileStore = defineStore("file", () => {
    */
   const saveFileContent = async (filePath, content) => {
     try {
-      await fileApi.saveFileContent({
-        path: filePath,
-        content: content,
-      });
-
+      await fileApi.saveFileContent({ path: filePath, content });
       return true;
     } catch (error) {
       console.error("保存文件修改失败:", error);
@@ -530,8 +527,7 @@ export const useFileStore = defineStore("file", () => {
   return {
     uploading,
     fileProgressMap,
-    uploadFiles, // 待上传文件列表
-    getFileProgress,
+    uploadFiles,
     uploadSmallFile,
     uploadLargeFile,
     submitUpload,

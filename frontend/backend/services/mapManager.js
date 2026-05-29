@@ -307,13 +307,13 @@ class MapManager {
         }
       }
 
-      console.log("已分配的文件", assignMapData);
+      // console.log("已分配的文件", assignMapData);
 
       // 从分配地图数据中移除
       const updatedAssignMapData = assignMapData.filter(
         (item) => !(item.mapName === mapName && item.serverName === serverName),
       );
-      console.log("updatedAssignMapData", updatedAssignMapData);
+      // console.log("updatedAssignMapData", updatedAssignMapData);
       // 写入分配地图数据
       const assignMapDataConfigPath = path.join(
         this.assignMapData,

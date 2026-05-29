@@ -138,6 +138,25 @@ class FileManager {
   }
 
   /**
+   * 对文件名进行清理，替换不允许的字符为下划线
+   * @param {number} extIndex - 扩展名索引
+   * @param {string} filename - 原始文件名
+   * @returns {string} 清理后的文件名
+   */
+  sanitizeFileName(extIndex, filename) {
+    // 替换 macOS/Linux/Windows 不允许的文件名特殊字符为下划线（保留最后一个.作为后缀分隔符）
+    if (extIndex > 0) {
+      const namePart = filename
+        .substring(0, extIndex)
+        .replace(/[<>:"/\\|?*\x00-\x1f.]/g, "_");
+      const extPart = filename.substring(extIndex);
+      return namePart + extPart;
+    } else {
+      return filename.replace(/[<>:"/\\|?*\x00-\x1f.]/g, "_");
+    }
+  }
+
+  /**
    * 处理文件上传
    * @param {Array} files - 上传的文件列表
    * @returns {Object} 上传结果
@@ -147,9 +166,9 @@ class FileManager {
       throw new Error("没有文件被上传");
     }
 
-    // 生成上传ID
-    const uploadId = Date.now().toString();
-
+    // 生成上传ID（使用UUID确保唯一性）
+    const uploadId = crypto.randomUUID();
+    console.log(`上传ID：${uploadId}, 文件名：${files[0].filename}`);
     // 更新上传状态
     this.uploadStatus[uploadId] = {
       status: "completed",
@@ -207,16 +226,7 @@ class FileManager {
 
     // 替换 macOS/Linux/Windows 不允许的文件名特殊字符为下划线（保留最后一个.作为后缀分隔符）
     const lastDotIndex = filename.lastIndexOf(".");
-    let sanitizedFilename;
-    if (lastDotIndex > 0) {
-      const namePart = filename
-        .substring(0, lastDotIndex)
-        .replace(/[<>:"/\\|?*\x00-\x1f.]/g, "_");
-      const extPart = filename.substring(lastDotIndex);
-      sanitizedFilename = namePart + extPart;
-    } else {
-      sanitizedFilename = filename.replace(/[<>:"/\\|?*\x00-\x1f.]/g, "_");
-    }
+    let sanitizedFilename = this.sanitizeFileName(lastDotIndex, filename);
 
     // 根据目录类型获取具体目录路径
     if (!uploadPath) {
@@ -237,8 +247,9 @@ class FileManager {
       throw new Error("上传路径无效");
     }
 
-    // 生成上传ID
-    const uploadId = Date.now().toString();
+    // 生成上传ID（使用UUID确保唯一性）
+    const uploadId = crypto.randomUUID();
+    console.log(`上传ID：${uploadId}, 文件名：${sanitizedFilename}`);
 
     // 创建临时目录存储分块
     const tempDir = path.join(config.serverPath, ".temp", uploadId);
